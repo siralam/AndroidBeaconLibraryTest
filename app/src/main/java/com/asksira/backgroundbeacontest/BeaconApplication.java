@@ -21,14 +21,13 @@ public class BeaconApplication extends Application implements BootstrapNotifier 
         super.onCreate();
         beaconManager = BeaconManager.getInstanceForApplication(this);
         beaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:0-3=4c000215,i:4-19,i:20-21,i:22-23,p:24-24"));
-        beaconManager.setBackgroundScanPeriod(10000);
-        beaconManager.setBackgroundBetweenScanPeriod(5000);
+        beaconManager.setBackgroundScanPeriod(5000);
+        beaconManager.setBackgroundBetweenScanPeriod(10000);
         region = new Region("backgroundRegion",
                 Identifier.parse("EBEFD083-70A2-47C8-9837-E7B5634DF524"), null, null);
         regionBootstrap = new RegionBootstrap(this, region);
         Log.i("selfBeacon", "Bootstrap created");
     }
-
 
     @Override
     public void didEnterRegion(Region region) {
@@ -50,6 +49,8 @@ public class BeaconApplication extends Application implements BootstrapNotifier 
     }
 
     public void resumeScanning () {
+        beaconManager.setBackgroundScanPeriod(5000);
+        beaconManager.setBackgroundBetweenScanPeriod(10000);
         regionBootstrap = new RegionBootstrap(this, region);
         Log.i("selfBeacon", "scanning resumed");
     }

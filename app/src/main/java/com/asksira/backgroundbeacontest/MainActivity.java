@@ -11,7 +11,6 @@ import android.widget.Toast;
 import org.altbeacon.beacon.Beacon;
 import org.altbeacon.beacon.BeaconConsumer;
 import org.altbeacon.beacon.BeaconManager;
-import org.altbeacon.beacon.BeaconParser;
 import org.altbeacon.beacon.Identifier;
 import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
@@ -38,8 +37,11 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                             LOCATION_PERMISSION_CODE);
                 } else {
                     if (beaconManager != null) return;
+                    region = new Region("backgroundRegion",
+                            Identifier.parse("EBEFD083-70A2-47C8-9837-E7B5634DF524"), null, null);
                     beaconManager = BeaconManager.getInstanceForApplication(MainActivity.this);
-                    beaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:0-3=4c000215,i:4-19,i:20-21,i:22-23,p:24-24"));
+                    beaconManager.setBackgroundScanPeriod(2000);
+                    beaconManager.setBackgroundBetweenScanPeriod(0);
                     beaconManager.bind(MainActivity.this);
                     Toast.makeText(MainActivity.this, "BeaconManager bound", Toast.LENGTH_SHORT).show();
                 }
@@ -51,6 +53,12 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
 
     @Override
     protected void onDestroy() {
+        try {
+            beaconManager.stopRangingBeaconsInRegion(region);
+            beaconManager.removeAllRangeNotifiers();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
         super.onDestroy();
         beaconManager.unbind(this);
     }
@@ -66,8 +74,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
             }
         });
         try {
-            beaconManager.startRangingBeaconsInRegion(new Region("backgroundRegion",
-                    Identifier.parse("EBEFD083-70A2-47C8-9837-E7B5634DF524"), null, null));
+            beaconManager.startRangingBeaconsInRegion(region);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
