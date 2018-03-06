@@ -23,7 +23,7 @@
         </activity>
 
         <service
-            android:name=".BeaconService"
+            android:name=".SelfBeaconService"
             android:enabled="true"
             android:exported="false"/>
     </application>

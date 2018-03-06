@@ -19,14 +19,14 @@ import java.util.Collection;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class BeaconService extends IntentService implements BeaconConsumer {
+public class SelfBeaconService extends IntentService implements BeaconConsumer {
 
     private BeaconManager beaconManager;
     private Region region;
     private Timer timer;
     private boolean hasDetectedBeaconAgain = false;
 
-    public BeaconService() {
+    public SelfBeaconService() {
         super("BeaconScanningService");
     }
 
