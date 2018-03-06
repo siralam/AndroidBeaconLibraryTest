@@ -1,6 +1,7 @@
 package com.asksira.backgroundbeacontest;
 
 import android.app.Application;
+import android.content.Intent;
 import android.util.Log;
 
 import org.altbeacon.beacon.BeaconManager;
@@ -32,10 +33,10 @@ public class BeaconApplication extends Application implements BootstrapNotifier 
     @Override
     public void didEnterRegion(Region region) {
         Log.i("selfBeacon", "Bootstrap didEnterRegion");
-//        regionBootstrap.disable();
-//        Intent intent = new Intent(this, SelfBeaconService.class);
-//        startService(intent);
-//        Log.i("selfBeacon", "Service start commanded");
+        regionBootstrap.disable();
+        Intent intent = new Intent(this, SelfBeaconService.class);
+        startService(intent);
+        Log.i("selfBeacon", "Service start commanded");
     }
 
     @Override
