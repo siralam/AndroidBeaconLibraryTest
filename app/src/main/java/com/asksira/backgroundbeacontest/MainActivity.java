@@ -54,13 +54,15 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     @Override
     protected void onDestroy() {
         try {
-            beaconManager.stopRangingBeaconsInRegion(region);
-            beaconManager.removeAllRangeNotifiers();
+            if (beaconManager != null) {
+                beaconManager.stopRangingBeaconsInRegion(region);
+                beaconManager.removeAllRangeNotifiers();
+            }
         } catch (RemoteException e) {
             e.printStackTrace();
         }
         super.onDestroy();
-        beaconManager.unbind(this);
+        if (beaconManager != null) beaconManager.unbind(this);
     }
 
     @Override

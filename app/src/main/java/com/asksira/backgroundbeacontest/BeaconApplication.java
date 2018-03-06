@@ -32,7 +32,7 @@ public class BeaconApplication extends Application implements BootstrapNotifier 
     @Override
     public void didEnterRegion(Region region) {
         Log.i("selfBeacon", "Bootstrap didEnterRegion");
-        regionBootstrap.disable();
+//        regionBootstrap.disable();
 //        Intent intent = new Intent(this, SelfBeaconService.class);
 //        startService(intent);
 //        Log.i("selfBeacon", "Service start commanded");
