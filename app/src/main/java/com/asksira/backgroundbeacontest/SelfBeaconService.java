@@ -1,10 +1,13 @@
 package com.asksira.backgroundbeacontest;
 
+import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import org.altbeacon.beacon.Beacon;
@@ -26,29 +29,52 @@ public class SelfBeaconService extends Service implements BeaconConsumer {
     public void onCreate() {
         super.onCreate();
         Log.i("selfBeaconService", "onCreate");
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i("selfBeaconService", "onStartCommand");
+        broadcastSystemLog("Beacon Service onCreate triggered.");
         beaconManager = BeaconManager.getInstanceForApplication(this);
         beaconManager.setEnableScheduledScanJobs(false); //Stop scanning
-        beaconManager.setBackgroundScanPeriod(2000);
-        beaconManager.setBackgroundBetweenScanPeriod(2000);
+        beaconManager.setForegroundScanPeriod(2000);
+        beaconManager.setForegroundBetweenScanPeriod(2000);
         beaconManager.bind(this);
         region = new Region("foreground region",
                 Identifier.parse("EBEFD083-70A2-47C8-9837-E7B5634DF524"), null, null);
+
+        startForeground();
+
+        return super.onStartCommand(intent, flags, startId);
     }
 
     @Override
     public void onBeaconServiceConnect() {
         Log.i("selfBeaconService", "onBeaconServiceConnect");
+        broadcastSystemLog("onBeaconServiceConnect triggered.");
         beaconManager.addRangeNotifier(new RangeNotifier() {
             @Override
             public void didRangeBeaconsInRegion(Collection<Beacon> collection, Region region) {
                 if (collection.size() > 0) {
                     noBeaconDetectedCount = 0;
-                    Log.i("selfBeaconService", "didRangeBeaconsInRegion, the first beacon is about" +
-                            collection.iterator().next().getDistance() + " meters away.");
+                    double closestDistance = -1;
+                    for (Beacon each : collection) {
+                        if (closestDistance == -1) {
+                            closestDistance = each.getDistance();
+                        } else if (each.getDistance() < closestDistance) {
+                            closestDistance = each.getDistance();
+                        }
+                    }
+                    Log.i("selfBeaconService", "didRangeBeaconsInRegion, the closest beacon is about " +
+                            closestDistance + " meters away.");
+                    broadcastToActivity("The closest beacon is about " +
+                            closestDistance + " meters away.");
                 } else {
                     noBeaconDetectedCount++;
+                    broadcastToActivity("No beacon has been detected for " + noBeaconDetectedCount + " times");
                     if (noBeaconDetectedCount > 10) { //10*(2000ms+2000ms) = 40 seconds
-                        stopSelf();
+                        stopForeground(true);
+                        terminate();
                     }
                 }
             }
@@ -63,7 +89,8 @@ public class SelfBeaconService extends Service implements BeaconConsumer {
 
     @Override
     public void onDestroy() {
-        terminate();
+        Log.i("selfBeacon", "onDestroy");
+        broadcastSystemLog("BeaconService onDestroy triggered.");
         super.onDestroy();
     }
 
@@ -73,12 +100,49 @@ public class SelfBeaconService extends Service implements BeaconConsumer {
         return null;
     }
 
+    private void broadcastToActivity (String message) {
+        Intent intent = new Intent();
+        intent.setAction("beaconBroadcast");
+        intent.putExtra("beaconService", message);
+        sendBroadcast(intent);
+    }
+
+    private void broadcastSystemLog (String message) {
+        Intent intent = new Intent();
+        intent.setAction("beaconBroadcast");
+        intent.putExtra("beaconServiceLog", message);
+        sendBroadcast(intent);
+    }
+
+    private void startForeground () {
+        NotificationCompat.Builder notificationBuilder = null;
+        Notification notification = null;
+        if (Build.VERSION.SDK_INT >= 26) {
+            notificationBuilder = new NotificationCompat.Builder(this, "rangingService")
+                    .setContentTitle("Active Scanning")
+                    .setContentText("App is scanning for nearby beacons");
+            notification = notificationBuilder.build();
+        } else {
+            notificationBuilder = new NotificationCompat.Builder(this)
+                    .setContentTitle("Active Scanning")
+                    .setContentText("App is scanning for nearby beacons");
+            notification = notificationBuilder.build();
+        }
+        startForeground(1234, notification);
+    }
+
     private void terminate () {
-        Log.i("selfBeaconService", "service start terminating");
+        try {
+            beaconManager.stopRangingBeaconsInRegion(region);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        beaconManager.removeAllRangeNotifiers();
         beaconManager.unbind(this);
         beaconManager.setEnableScheduledScanJobs(true);
         ((BeaconApplication)getApplication()).resumeScanning();
         stopSelf();
-        Log.i("selfBeaconService", "service terminated");
+        Log.i("selfBeaconService", "service stopped");
+        broadcastSystemLog("BeaconSevice stopped.");
     }
 }
