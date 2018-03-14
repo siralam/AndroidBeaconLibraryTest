@@ -9,6 +9,7 @@ import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.BeaconParser;
 import org.altbeacon.beacon.Identifier;
 import org.altbeacon.beacon.Region;
+import org.altbeacon.beacon.powersave.BackgroundPowerSaver;
 import org.altbeacon.beacon.startup.BootstrapNotifier;
 import org.altbeacon.beacon.startup.RegionBootstrap;
 
@@ -17,10 +18,13 @@ public class BeaconApplication extends Application implements BootstrapNotifier 
     private Region region;
     private RegionBootstrap regionBootstrap;
     private BeaconManager beaconManager;
+    private BackgroundPowerSaver backgroundPowerSaver;
 
     @Override
     public void onCreate() {
         super.onCreate();
+
+        backgroundPowerSaver = new BackgroundPowerSaver(this);
         beaconManager = BeaconManager.getInstanceForApplication(this);
         beaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:0-3=4c000215,i:4-19,i:20-21,i:22-23,p:24-24"));
         beaconManager.setBackgroundScanPeriod(5000);
