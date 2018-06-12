@@ -32,22 +32,21 @@ public class SelfBeaconService extends Service implements BeaconConsumer {
     public void onCreate() {
         super.onCreate();
         Log.i("selfBeaconService", "onCreate");
+        beaconManager = BeaconManager.getInstanceForApplication(this);
+        region = new Region("foreground region",
+                Identifier.parse("EBEFD083-70A2-47C8-9837-E7B5634DF524"), null, null);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("selfBeaconService", "onStartCommand");
         broadcastSystemLog("Beacon Service onCreate triggered.");
-        beaconManager = BeaconManager.getInstanceForApplication(this);
         beaconManager.setEnableScheduledScanJobs(false); //Stop scanning
         beaconManager.setForegroundScanPeriod(2000);
         beaconManager.setForegroundBetweenScanPeriod(2000);
         beaconManager.bind(this);
-        region = new Region("foreground region",
-                Identifier.parse("EBEFD083-70A2-47C8-9837-E7B5634DF524"), null, null);
 
         startForeground();
-
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -77,7 +76,7 @@ public class SelfBeaconService extends Service implements BeaconConsumer {
                     broadcastToActivity("No beacon has been detected for " + noBeaconDetectedCount + " times");
                     if (noBeaconDetectedCount > 10) { //10*(2000ms+2000ms) = 40 seconds
                         stopForeground(true);
-                        terminate();
+                        stopSelf();
                     }
                 }
             }
@@ -95,6 +94,17 @@ public class SelfBeaconService extends Service implements BeaconConsumer {
         Log.i("selfBeacon", "onDestroy");
         broadcastSystemLog("BeaconService onDestroy triggered.");
         super.onDestroy();
+        try {
+            beaconManager.stopRangingBeaconsInRegion(region);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        beaconManager.removeAllRangeNotifiers();
+        beaconManager.unbind(this);
+        beaconManager.setEnableScheduledScanJobs(true);
+        ((BeaconApplication) getApplication()).resumeScanning();
+        Log.i("selfBeaconService", "service stopped");
+        broadcastSystemLog("BeaconSevice stopped.");
     }
 
     @Nullable
@@ -103,21 +113,21 @@ public class SelfBeaconService extends Service implements BeaconConsumer {
         return null;
     }
 
-    private void broadcastToActivity (String message) {
+    private void broadcastToActivity(String message) {
         Intent intent = new Intent();
         intent.setAction("beaconBroadcast");
         intent.putExtra("beaconService", message);
         sendBroadcast(intent);
     }
 
-    private void broadcastSystemLog (String message) {
+    private void broadcastSystemLog(String message) {
         Intent intent = new Intent();
         intent.setAction("beaconBroadcast");
         intent.putExtra("beaconServiceLog", message);
         sendBroadcast(intent);
     }
 
-    private void startForeground () {
+    private void startForeground() {
         NotificationCompat.Builder notificationBuilder = null;
         Notification notification = null;
         if (Build.VERSION.SDK_INT >= 26) {
@@ -138,20 +148,5 @@ public class SelfBeaconService extends Service implements BeaconConsumer {
             notification = notificationBuilder.build();
         }
         startForeground(1234, notification);
-    }
-
-    private void terminate () {
-        try {
-            beaconManager.stopRangingBeaconsInRegion(region);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-        beaconManager.removeAllRangeNotifiers();
-        beaconManager.unbind(this);
-        beaconManager.setEnableScheduledScanJobs(true);
-        ((BeaconApplication)getApplication()).resumeScanning();
-        stopSelf();
-        Log.i("selfBeaconService", "service stopped");
-        broadcastSystemLog("BeaconSevice stopped.");
     }
 }
